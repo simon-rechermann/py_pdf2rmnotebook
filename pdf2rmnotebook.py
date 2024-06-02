@@ -21,6 +21,7 @@ Usage:
 Create multi-page reMarkable Notebook file from PDF files
   * Creates .zip files by default for use with rmapi
   * Use -r option to create a reMarkable Notebook .rmn file for use with RCU
+  * Use -d option to create a reMarkable Document .rmdoc file
 
 Options:
   -h    Display this help and exit
@@ -44,28 +45,47 @@ def create_notebook_from_pdf(pdf_path, output_path, scale, verbose, create_rmn, 
     notebook_dir = os.path.join(temp_dir, "Notebook")
     os.makedirs(notebook_dir)
 
-    page_num = 0
     notebook_uuid = str(uuid.uuid4())
     notebook_subdir = os.path.join(notebook_dir, notebook_uuid)
     os.makedirs(notebook_subdir)
 
     images = convert_from_path(pdf_path)
-    for img in images:
+    page_uuids = []
+
+    for page_num, img in enumerate(images):
         img = img.resize((int(img.width * scale), int(img.height * scale)), Image.Resampling.LANCZOS)
-        img_path = os.path.join(notebook_subdir, f"{page_num}.png")
+        page_uuid = str(uuid.uuid4())
+        img_path = os.path.join(notebook_subdir, f"{page_uuid}.rm")
         img.save(img_path, "PNG")
-        page_num += 1
+        create_page_metadata(notebook_subdir, page_uuid)
+        page_uuids.append(page_uuid)
 
     if create_rmn:
-        create_rmn_file(notebook_dir, notebook_uuid, display_name, output_path, verbose)
+        create_rmn_file(notebook_dir, notebook_uuid, display_name, output_path, verbose, page_uuids)
     elif create_rmdoc:
-        create_rmdoc_file(notebook_dir, notebook_uuid, display_name, output_path, verbose)
+        create_rmdoc_file(notebook_dir, notebook_uuid, display_name, output_path, verbose, page_uuids)
     else:
         create_zip_file(notebook_dir, output_path, verbose)
 
     shutil.rmtree(temp_dir)
     if verbose:
         print(f"Output written to {output_path}")
+
+def create_page_metadata(directory, page_uuid):
+    metadata = {
+        "layers": [
+            {
+                "name": "Layer 1",
+                "annotations": []
+            }
+        ],
+        "dimensions": {
+            "height": 1404,
+            "width": 1872
+        }
+    }
+    with open(os.path.join(directory, f"{page_uuid}-metadata.json"), 'w') as metadata_file:
+        json.dump(metadata, metadata_file)
 
 def create_zip_file(notebook_dir, output_path, verbose):
     with zipfile.ZipFile(output_path, 'w') as notebook_zip:
@@ -74,12 +94,10 @@ def create_zip_file(notebook_dir, output_path, verbose):
                 file_path = os.path.join(root, file)
                 notebook_zip.write(file_path, os.path.relpath(file_path, notebook_dir))
 
-def create_rmn_file(notebook_dir, notebook_uuid, display_name, output_path, verbose):
+def create_rmn_file(notebook_dir, notebook_uuid, display_name, output_path, verbose, page_uuids):
     content = []
-    for page in sorted(os.listdir(os.path.join(notebook_dir, notebook_uuid))):
-        if page.endswith('.png'):
-            page_uuid = str(uuid.uuid4())
-            content.append({"type": "page", "parent": notebook_uuid, "id": page_uuid})
+    for page_uuid in page_uuids:
+        content.append({"type": "page", "parent": notebook_uuid, "id": page_uuid})
     notebook_metadata = {
         "visibleName": display_name or f"Notebook-{datetime.now().strftime('%Y%m%d_%H%M.%S')}",
         "lastOpenedPage": 0,
@@ -94,7 +112,7 @@ def create_rmn_file(notebook_dir, notebook_uuid, display_name, output_path, verb
     with tarfile.open(output_path, "w") as tar:
         tar.add(notebook_dir, arcname=os.path.basename(notebook_dir))
 
-def create_rmdoc_file(notebook_dir, notebook_uuid, display_name, output_path, verbose):
+def create_rmdoc_file(notebook_dir, notebook_uuid, display_name, output_path, verbose, page_uuids):
     document_metadata = {
         "visibleName": display_name or f"Document-{datetime.now().strftime('%Y%m%d_%H%M.%S')}",
         "lastOpenedPage": 0,
@@ -102,10 +120,8 @@ def create_rmdoc_file(notebook_dir, notebook_uuid, display_name, output_path, ve
         "version": 1
     }
     content = []
-    for page in sorted(os.listdir(os.path.join(notebook_dir, notebook_uuid))):
-        if page.endswith('.png'):
-            page_uuid = str(uuid.uuid4())
-            content.append({"type": "page", "parent": notebook_uuid, "id": page_uuid})
+    for page_uuid in page_uuids:
+        content.append({"type": "page", "parent": notebook_uuid, "id": page_uuid})
     with open(os.path.join(notebook_dir, f"{notebook_uuid}.content"), 'w') as content_file:
         json.dump(content, content_file)
     with open(os.path.join(notebook_dir, f"{notebook_uuid}.metadata"), 'w') as metadata_file:
