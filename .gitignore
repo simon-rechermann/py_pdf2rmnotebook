@@ -2,3 +2,4 @@ output
 venv
 .venv
 .vscode
+real_rm_files
