@@ -3,3 +3,4 @@ venv
 .venv
 .vscode
 real_rm_files
+pdfs
