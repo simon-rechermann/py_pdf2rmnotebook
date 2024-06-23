@@ -10,6 +10,7 @@ import subprocess
 from jinja2 import  Environment, FileSystemLoader
 from pathlib import Path
 from pdf2image import convert_from_path
+import time
 
 OUTPUT_TEMP = "output/temp"
 
@@ -64,28 +65,68 @@ def create_rmdoc_file(notebook_dir, output_path):
                 file_path = os.path.join(root, file)
                 rmdoc_zip.write(file_path, os.path.relpath(file_path, notebook_dir))
 
-def create_metadata(directory, page_uuid, visible_name):
-    _create_content_file()
-    _create_local_file()
-    _create_metadata_file()
+def create_metadata(output_path, rmdoc_uuid, page_uuids):
     env = Environment(loader=FileSystemLoader('templates'))
-    template = env.get_template('template.metadata.j2')
+    _create_local_file(output_path, env, rmdoc_uuid)
+    _create_metadata_file(output_path, env, rmdoc_uuid)
+    _create_content_file(output_path, env, rmdoc_uuid, page_uuids)
 
-    rendered_template = template.render({"visibleName": visible_name})
-        
-    with open(os.path.join(directory, f"{page_uuid}.metadata"), 'w') as metadata_file:
+
+
+def _create_local_file(output_path, env, rmdoc_uuid):
+    template = env.get_template('template.local.j2')
+    rendered_template = template.render({"contentFormatVersion": 2})
+    with open(os.path.join(output_path, f"{rmdoc_uuid}.local"), 'w') as local_file:
+        local_file.write(rendered_template)
+
+def _create_metadata_file(output_path, env, rmdoc_uuid):
+    template = env.get_template('template.metadata.j2')
+    current_unix_millies = _get_current_unix_time_millis()
+    rendered_template = template.render(
+        {
+        "visibleName": "visibleName", 
+        "current_unix_time_milliseconds": current_unix_millies
+        }
+    )
+    with open(os.path.join(output_path, f"{rmdoc_uuid}.metadata"), 'w') as metadata_file:
         metadata_file.write(rendered_template)
 
+def _get_current_unix_time_millis():
+    current_time_seconds = time.time()
+    return int(current_time_seconds * 1000)
 
-def _create_content_file():
-    pass
+def _create_content_file(output_path, env, rmdoc_uuid, page_uuids):
+    template = env.get_template('template.content.j2')
+    page_uuids_and_values = _get_page_uuids_and_values(page_uuids)
+    size_in_bytes = _get_size_in_bytes()
+    # page_uuids_and_values = [
+    #     {"uuid": "first_page_uuid", "value": "ba"},
+    #     {"uuid": "second_page_uuid", "value": "bb"},
+    #     # ...
+    # ]
+    rendered_template = template.render(
+        {
+            "page_uuids_and_values": page_uuids_and_values,
+            "size_in_bytes": size_in_bytes
+        }
+    )
+    with open(os.path.join(output_path, f"{rmdoc_uuid}.content"), 'w') as metadata_file:
+        metadata_file.write(rendered_template)
 
-def _create_local_file():
-    pass
+def _get_page_uuids_and_values(page_uuids):
+    page_uuids_and_values = []
+    for idx, page_uuid in enumerate(page_uuids):
+        # Convert index to lowercase letters starting from 'a'
+        letter = chr(97 + idx)
+        page_uuids_and_values.append
+        (
+            {"uuid": str(page_uuid), "value": f"b{letter}"}
+        )
+    return page_uuids_and_values
 
-def _create_metadata_file():
-    pass
-
+def _get_size_in_bytes():
+    return 0
+        
 
 
 def split_pdf_pages(source_pdf_path):
@@ -138,7 +179,7 @@ def main():
     if not os.path.exists(thumbnails_folder):
         os.makedirs(thumbnails_folder)
 
-    rm_files = []
+    page_uuids = []
     for pdf_file in args.files:
         print(f"Working on file: {pdf_file}")
         if not os.path.isfile(pdf_file):
@@ -149,12 +190,12 @@ def main():
             page_uuid = uuid.uuid4()
             rm_out_file_name = f"{page_uuid}.rm"
             thumbnail_out_file_name = f"{page_uuid}.png"
-            rm_files.append(rm_files)
+            page_uuids.append(page_uuid)
             rm_out_file_path = rm_files_folder / rm_out_file_name
             thumbnail_out_file_path = thumbnails_folder / thumbnail_out_file_name
             create_single_rm_file_from_single_pdf(pdf_page, rm_out_file_path, scale)
             create_thumbnail(pdf_page, thumbnail_out_file_path)
-    create_metadata(rmdoc_folder, rm_files)
+    create_metadata(rmdoc_folder, rmdoc_uuid, page_uuids)
     rmdoc_file_name = Path(str(rmdoc_folder) + ".rmdoc")
     create_rmdoc_file(rmdoc_file_name)
 

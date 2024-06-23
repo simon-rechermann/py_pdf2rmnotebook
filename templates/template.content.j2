@@ -1,0 +1,86 @@
+{
+    "cPages": {
+        "lastOpened": {
+            "timestamp": "1:2",
+            "value": "{{ page_uuids_and_values[0].uuid }}"
+        },
+        "original": {
+            "timestamp": "0:0",
+            "value": -1
+        },
+        "pages": [
+            {% for page in page_uuids_and_values %}
+            {
+                "id": "{{ page.uuid }}",
+                "idx": {
+                    "timestamp": "1:2",
+                    "value": "{{ page.value }}"
+                },
+                "template": {
+                    "timestamp": "1:2",
+                    "value": "Blank"
+                }
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]
+        "uuids": [
+            {
+                "first": "9c89063f-8860-5f00-afd5-0c6ab423e37e",
+                "second": 1
+            }
+        ]
+    },
+    "coverPageNumber": -1,
+    "customZoomCenterX": 0,
+    "customZoomCenterY": 936,
+    "customZoomOrientation": "portrait",
+    "customZoomPageHeight": 1872,
+    "customZoomPageWidth": 1404,
+    "customZoomScale": 1,
+    "documentMetadata": {
+    },
+    "extraMetadata": {
+        "LastBallpointv2Color": "Black",
+        "LastBallpointv2Size": "3",
+        "LastCalligraphyColor": "Black",
+        "LastCalligraphySize": "2",
+        "LastEraseSectionColor": "Black",
+        "LastEraseSectionSize": "2",
+        "LastEraserColor": "Black",
+        "LastEraserSize": "2",
+        "LastEraserTool": "Eraser",
+        "LastFinelinerv2Color": "Black",
+        "LastFinelinerv2Size": "1",
+        "LastHighlighterv2Color": "HighlighterYellow",
+        "LastHighlighterv2Size": "1",
+        "LastMarkerv2Color": "Red",
+        "LastMarkerv2Size": "2",
+        "LastPaintbrushColor": "Black",
+        "LastPaintbrushSize": "2",
+        "LastPaintbrushv2Color": "Black",
+        "LastPaintbrushv2Size": "2",
+        "LastPen": "Finelinerv2",
+        "LastPencilv2Color": "Black",
+        "LastPencilv2Size": "2",
+        "LastSelectionToolColor": "Black",
+        "LastSelectionToolSize": "2",
+        "LastSharpPencilv2Color": "Black",
+        "LastSharpPencilv2Size": "3",
+        "LastTool": "Finelinerv2"
+    },
+    "fileType": "notebook",
+    "fontName": "",
+    "formatVersion": 2,
+    "lineHeight": -1,
+    "margins": 125,
+    "orientation": "portrait",
+    "pageCount": 2,
+    "pageTags": [
+    ],
+    "sizeInBytes": "{{ size_in_bytes }}",
+    "tags": [
+    ],
+    "textAlignment": "justify",
+    "textScale": 1,
+    "zoomMode": "bestFit"
+}
