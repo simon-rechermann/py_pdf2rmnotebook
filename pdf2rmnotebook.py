@@ -114,19 +114,19 @@ def _create_content_file(output_path, env, rmdoc_uuid, page_uuids):
         metadata_file.write(rendered_template)
 
 def _get_page_uuids_and_values(page_uuids):
+    # TODO: What happens and should happen after 'z' so by -> bz -> b?
     page_uuids_and_values = []
     for idx, page_uuid in enumerate(page_uuids):
         # Convert index to lowercase letters starting from 'a'
         letter = chr(97 + idx)
-        page_uuids_and_values.append
-        (
+        page_uuids_and_values.append(
             {"uuid": str(page_uuid), "value": f"b{letter}"}
         )
     return page_uuids_and_values
 
 def _get_size_in_bytes():
-    return 0
-        
+    # TODO: get real size
+    return 0  
 
 
 def split_pdf_pages(source_pdf_path):

@@ -9,7 +9,7 @@
             "value": -1
         },
         "pages": [
-            {% for page in page_uuids_and_values %}
+            {% for page in page_uuids_and_values -%}
             {
                 "id": "{{ page.uuid }}",
                 "idx": {
@@ -21,7 +21,7 @@
                     "value": "Blank"
                 }
             }{% if not loop.last %},{% endif %}
-            {% endfor %}
+            {% endfor -%}
         ]
         "uuids": [
             {
