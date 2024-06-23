@@ -38,7 +38,7 @@ Example:
 
 def create_single_rm_file_from_single_pdf(pdf_path, out_file_path, scale=0.7):
     # echo image aliasing.pdf 0 0 0 0.7 | drawj2d -Trmdoc
-    drawj2d_cmd = f"echo image {pdf_path} 0 0 0 {scale} | drawj2d -Trmdoc -o {out_file_path}"
+    drawj2d_cmd = f"echo image {pdf_path} 0 0 0 {scale} | drawj2d -Trm -o {out_file_path}"
     process = subprocess.run(drawj2d_cmd, shell=True, text=True, capture_output=True) #cwd=out_file_path)
     if process.returncode == 0:
         print("Command executed successfully!")
@@ -58,12 +58,13 @@ def create_thumbnail(pdf_path, out_file_path):
         print(f"Failed to create thumbnail for: {pdf_path}")
 
 
-def create_rmdoc_file(notebook_dir, output_path):
-    with zipfile.ZipFile(output_path, 'w') as rmdoc_zip:
-        for root, _, files in os.walk(notebook_dir):
+def create_rmdoc_file(rmdoc_files_folder, rmdoc_file_name):
+    with zipfile.ZipFile(rmdoc_file_name, 'w') as rmdoc_zip:
+        for root, _, files in os.walk(rmdoc_files_folder):
             for file in files:
                 file_path = os.path.join(root, file)
-                rmdoc_zip.write(file_path, os.path.relpath(file_path, notebook_dir))
+                rmdoc_zip.write(file_path, os.path.relpath(file_path, rmdoc_files_folder))
+
 
 def create_metadata(output_path, rmdoc_uuid, page_uuids):
     env = Environment(loader=FileSystemLoader('templates'))
@@ -107,7 +108,8 @@ def _create_content_file(output_path, env, rmdoc_uuid, page_uuids):
     rendered_template = template.render(
         {
             "page_uuids_and_values": page_uuids_and_values,
-            "size_in_bytes": size_in_bytes
+            "size_in_bytes": size_in_bytes,
+            "page_count": len(page_uuids)
         }
     )
     with open(os.path.join(output_path, f"{rmdoc_uuid}.content"), 'w') as metadata_file:
@@ -169,10 +171,10 @@ def main():
     scale = args.s
     rmdoc_folder_name = args.o if args.o else f"Notebook-{datetime.now().strftime('%Y%m%d_%H%M.%S')}"
 
-    out_file_folder = "output"
-    rmdoc_folder = Path(out_file_folder) / rmdoc_folder_name
+    out_file_folder = Path("output")
+    rmdoc_files_folder = out_file_folder / rmdoc_folder_name
     rmdoc_uuid = str(uuid.uuid4())
-    rm_files_folder = rmdoc_folder / rmdoc_uuid
+    rm_files_folder = rmdoc_files_folder / rmdoc_uuid
     thumbnails_folder = Path(str(rm_files_folder) + ".thumbnails")
     if not os.path.exists(rm_files_folder):
         os.makedirs(rm_files_folder)
@@ -195,9 +197,9 @@ def main():
             thumbnail_out_file_path = thumbnails_folder / thumbnail_out_file_name
             create_single_rm_file_from_single_pdf(pdf_page, rm_out_file_path, scale)
             create_thumbnail(pdf_page, thumbnail_out_file_path)
-    create_metadata(rmdoc_folder, rmdoc_uuid, page_uuids)
-    rmdoc_file_name = Path(str(rmdoc_folder) + ".rmdoc")
-    create_rmdoc_file(rmdoc_file_name)
+    create_metadata(rmdoc_files_folder, rmdoc_uuid, page_uuids)
+    rmdoc_file_name = str(rmdoc_files_folder) + ".rmdoc"
+    create_rmdoc_file(rmdoc_files_folder, rmdoc_file_name)
 
 if __name__ == "__main__":
     main()

@@ -21,8 +21,8 @@
                     "value": "Blank"
                 }
             }{% if not loop.last %},{% endif %}
-            {% endfor -%}
-        ]
+        {% endfor -%}
+        ],
         "uuids": [
             {
                 "first": "9c89063f-8860-5f00-afd5-0c6ab423e37e",
@@ -74,7 +74,7 @@
     "lineHeight": -1,
     "margins": 125,
     "orientation": "portrait",
-    "pageCount": 2,
+    "pageCount": {{ page_count }},
     "pageTags": [
     ],
     "sizeInBytes": "{{ size_in_bytes }}",
