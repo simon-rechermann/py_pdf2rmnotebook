@@ -36,7 +36,7 @@ Example:
 """)
     sys.exit(1)
 
-def create_single_rm_file_from_single_pdf(pdf_path, out_file_path, scale=0.7):
+def create_single_rm_file_from_single_pdf(pdf_path, out_file_path, scale):
     # echo image aliasing.pdf 0 0 0 0.7 | drawj2d -Trmdoc
     drawj2d_cmd = f"echo image {pdf_path} 0 0 0 {scale} | drawj2d -Trm -o {out_file_path}"
     process = subprocess.run(drawj2d_cmd, shell=True, text=True, capture_output=True) #cwd=out_file_path)
@@ -115,20 +115,27 @@ def _create_content_file(output_path, env, rmdoc_uuid, page_uuids):
     with open(os.path.join(output_path, f"{rmdoc_uuid}.content"), 'w') as metadata_file:
         metadata_file.write(rendered_template)
 
+
 def _get_page_uuids_and_values(page_uuids):
-    # TODO: What happens and should happen after 'z' so by -> bz -> b?
+    # After 'bz' we continue with 'ca'
     page_uuids_and_values = []
     for idx, page_uuid in enumerate(page_uuids):
-        # Convert index to lowercase letters starting from 'a'
-        letter = chr(97 + idx)
+        # Calculate the first letter
+        first_letter_idx = idx // 26  # Dividing by 26 to shift to the next letter after 26 entries
+        second_letter_idx = idx % 26  # Remainder will give the second letter index
+
+        # Convert index to lowercase letters, first_letter starting from 'b' (98 in ASCII)
+        first_letter = chr(98 + first_letter_idx)
+        second_letter = chr(97 + second_letter_idx)
+
         page_uuids_and_values.append(
-            {"uuid": str(page_uuid), "value": f"b{letter}"}
+            {"uuid": str(page_uuid), "value": f"{first_letter}{second_letter}"}
         )
     return page_uuids_and_values
 
 def _get_size_in_bytes():
     # TODO: get real size
-    return 0  
+    return 0
 
 
 def split_pdf_pages(pdf_files):
@@ -168,7 +175,6 @@ def split_pdf_pages(pdf_files):
 def main():
     parser = argparse.ArgumentParser(description="Build multi-page reMarkable Notebook rmdoc file from PDF file")
     parser.add_argument('-v', action='store_true', help='Produce more messages to stdout')
-    parser.add_argument('-n', type=str, help='Set the rmdoc Notebook Display Name')
     parser.add_argument('-o', type=str, help='Set the output filename, default is the pdf name of the first passed pdf')
     parser.add_argument('-s', type=float, default=0.75, help='Set the scale value (default: 0.75)')
     parser.add_argument('pdf_files', nargs='+', help='PDF files to convert')

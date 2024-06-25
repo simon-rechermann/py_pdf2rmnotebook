@@ -1,2 +1,2 @@
-Copying of multipage rmdoc files does not work via webUI -> test via scp
-Copying of single page rmdoc files workes via webUI
+Copying of multipage rmdoc files does only work to a certain extend of files via webUI
+Add logging instead of print statements
