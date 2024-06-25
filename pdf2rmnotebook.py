@@ -171,11 +171,14 @@ def main():
     parser.add_argument('-n', type=str, help='Set the rmdoc Notebook Display Name')
     parser.add_argument('-o', type=str, help='Set the output filename, default is the pdf name of the first passed pdf')
     parser.add_argument('-s', type=float, default=0.75, help='Set the scale value (default: 0.75)')
-    parser.add_argument('files', nargs='+', help='PDF files to convert')
+    parser.add_argument('pdf_files', nargs='+', help='PDF files to convert')
 
     args = parser.parse_args()
     scale = args.s
-    notebook_name = args.o if args.o else f"Notebook-{datetime.now().strftime('%Y%m%d_%H%M.%S')}"
+
+    # Use name of the first pdf as name of the notebook
+    file_path = Path(args.pdf_files[0])
+    notebook_name = args.o if args.o else file_path.name.strip(".pdf")
 
     out_file_folder = Path("output")
     rmdoc_files_folder = out_file_folder / notebook_name
@@ -189,7 +192,7 @@ def main():
 
     page_uuids = []
     # Get the list of single pdf pages from one or multiple pdf files
-    pdf_pages = split_pdf_pages(args.files)
+    pdf_pages = split_pdf_pages(args.pdf_files)
     for pdf_page in pdf_pages:
         page_uuid = uuid.uuid4()
         rm_out_file_name = f"{page_uuid}.rm"
