@@ -1,2 +1,1 @@
-Copying of multipage rmdoc files does only work to a certain extend of files via webUI
-Add logging instead of print statements
+Add windows support
