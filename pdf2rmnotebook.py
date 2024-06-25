@@ -23,7 +23,7 @@ class ColorizingStreamHandler(logging.StreamHandler):
         elif record.levelno >= logging.WARNING:
             return colored(record.msg, 'yellow')
         else:
-            return record.msg  # Default no color for DEBUG and lower levels
+            return record.msg  # Default no color for INFO and lower levels
 
     def emit(self, record):
         # Use the custom colorizing function
@@ -49,9 +49,10 @@ def create_single_rm_file_from_single_pdf(pdf_path, out_file_path, scale):
     process = subprocess.run(drawj2d_cmd, shell=True, text=True, capture_output=True) #cwd=out_file_path)
     if process.returncode == 0:
         logger.debug("drawj2d_cmd command executed successfully!")
-        logger.debug("Output:\n", process.stdout)
+        logger.debug(f"Output:\n {process.stdout}")
     else:
-        raise RuntimeError(f"Error in drawj2d call:\n{process.stderr}")
+        logger.error(f"Error in drawj2d call:\n{process.stderr}")
+        sys.exit()
 
 def create_thumbnail(pdf_path, out_file_path):
     # Convert the first page of the PDF to an image
