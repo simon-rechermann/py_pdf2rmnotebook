@@ -45,4 +45,5 @@ To move the notebook to your reMarkable2 you have to drag and drop the file
 By default the rmdoc name and the name of the notebook that will appear on your reMarkable is the name of the first pdf you passed to the program (in this case document1).
 
 ## Limitations
-The amout of pdf pages respectively the size of the rmdoc file you drag and drop is currently limited to a size of approximately x pages
+The amout of pdf pages respectively the size of the rmdoc file you drag and drop is currently limited to a size of 100MB https://support.remarkable.com/s/article/Importing-files
+This is approximately 16 PDF pages. Maybe this can be improved in the future by e.g. compressing the thumbnails of the pages in the created notebook.

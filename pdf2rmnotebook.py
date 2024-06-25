@@ -2,47 +2,54 @@ import os
 import sys
 import uuid
 import argparse
-import tempfile
 from PyPDF2 import PdfReader, PdfWriter
 import zipfile
-from datetime import datetime
 import subprocess
 from jinja2 import  Environment, FileSystemLoader
 from pathlib import Path
 from pdf2image import convert_from_path
 import time
+import logging
+from termcolor import colored
+
+
+class ColorizingStreamHandler(logging.StreamHandler):
+    # Define a method to colorize messages based on log level
+    def colorize_log(self, record):
+        if record.levelno >= logging.CRITICAL:
+            return colored(record.msg, 'red', attrs=['bold'])
+        elif record.levelno >= logging.ERROR:
+            return colored(record.msg, 'red')
+        elif record.levelno >= logging.WARNING:
+            return colored(record.msg, 'yellow')
+        else:
+            return record.msg  # Default no color for DEBUG and lower levels
+
+    def emit(self, record):
+        # Use the custom colorizing function
+        record.msg = self.colorize_log(record)
+        # Format the message
+        message = self.format(record)
+        # Stream the message
+        self.stream.write(message + self.terminator)
+        self.flush()
+
+# Setup logging configuration
+logging.basicConfig(level=logging.INFO, handlers=[ColorizingStreamHandler()], format='%(levelname)s: %(message)s' )
+
+# Create logger
+logger = logging.getLogger()
 
 OUTPUT_TEMP = "output/temp"
 
-def usage():
-    print(f"""py_pdf2rmnotebook
-Usage:
-  pdf2rmnotebook [options] file.pdf [...]
-
-Create multi-page reMarkable Notebook file from PDF files
-  * Creates .zip files by default for use with rmapi
-  * Use -r option to create a reMarkable Notebook .rmn file for use with RCU
-  * Use -d option to create a reMarkable Document .rmdoc file
-
-Options:
-  -h    Display this help and exit
-  -n NAME    Set the rmn Notebook Display Name (default: Notebook-<yyyymmdd_hhmm.ss>)
-             Only used with -r option
-  -o FILE    Set the output filename (default: Notebook-<yyyymmdd_hhmm.ss>.zip)
-  -s SCALE   Set the scale value (default: 0.75) - 0.75 is a good value for A4/Letter PDFs
-
-Example:
-  pdf2rmnotebook -n "My Notebook" -o mynotebook.zip -s 1.0 file.pdf
-""")
-    sys.exit(1)
 
 def create_single_rm_file_from_single_pdf(pdf_path, out_file_path, scale):
     # echo image aliasing.pdf 0 0 0 0.7 | drawj2d -Trmdoc
     drawj2d_cmd = f"echo image {pdf_path} 0 0 0 {scale} | drawj2d -Trm -o {out_file_path}"
     process = subprocess.run(drawj2d_cmd, shell=True, text=True, capture_output=True) #cwd=out_file_path)
     if process.returncode == 0:
-        print("Command executed successfully!")
-        print("Output:\n", process.stdout)
+        logger.debug("drawj2d_cmd command executed successfully!")
+        logger.debug("Output:\n", process.stdout)
     else:
         raise RuntimeError(f"Error in drawj2d call:\n{process.stderr}")
 
@@ -53,9 +60,9 @@ def create_thumbnail(pdf_path, out_file_path):
     if images:
         # Save the first page as a PNG file
         images[0].save(out_file_path, 'PNG')
-        print(f"Thumbnail created: {out_file_path}")
+        logger.debug(f"Thumbnail created: {out_file_path}")
     else:
-        print(f"Failed to create thumbnail for: {pdf_path}")
+        logger.error(f"Failed to create thumbnail for: {pdf_path}")
 
 
 def create_rmdoc_file(rmdoc_files_folder, rmdoc_file_name):
@@ -142,9 +149,10 @@ def split_pdf_pages(pdf_files):
     output_paths = []  # Initialize a list to store output file paths
     total_num_pages = 0
     for pdf_file in pdf_files:
-        print(f"Working on file: {pdf_file}")
+        logger.info(f"Working on file: {pdf_file}")
         if not os.path.isfile(pdf_file):
-            print(f"{pdf_file}: No such file or irectory.")
+            logger.error(f"{pdf_file}: No such file or directory.")
+            sys.exit()
         # Create a PDF reader object
         reader = PdfReader(pdf_file)
         num_pages_single_pdf = len(reader.pages)
@@ -166,11 +174,33 @@ def split_pdf_pages(pdf_files):
             with open(output_path, 'wb') as output_pdf:
                 writer.write(output_pdf)
             
-            print(f"Created: {output_path}")
+            logger.info(f"Created: {output_path}")
             output_paths.append(output_path)  # Append the path to the list
         total_num_pages += num_pages_single_pdf
 
     return output_paths  # Return the list of created PDF file paths
+
+def check_size(file_path):
+    # Constant for the maximum file size (100MB) supported by the remarkable web Interface
+    MAX_SIZE_BYTES = 100 * 1024 * 1024  # 100MB in bytes
+    TEN_MB_BYTES = 10 * 1024 * 1024  # 10MB in bytes
+    
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        logger.error("File does not exist.")
+        sys.exit()
+    
+    # Get the size of the file
+    file_size = os.path.getsize(file_path)
+    
+    # Check if the file size is greater than the limit
+    if file_size > MAX_SIZE_BYTES:
+        logger.error(f'The file size is {file_size / (1024 * 1024):.2f} MB, which is greater than the allowed 100 MB. File transfer via the Web Interface will not work')
+    elif file_size >= MAX_SIZE_BYTES - TEN_MB_BYTES:
+        logger.warning(f'The file size is {file_size / (1024 * 1024):.2f} MB, which is close to the limit of 100MB. File transfer via the Web Interface might not work')
+    else:
+        logger.info(f'The file size is {file_size / (1024 * 1024):.2f} MB, which is within the limit.')
+
 
 def main():
     parser = argparse.ArgumentParser(description="Build multi-page reMarkable Notebook rmdoc file from PDF file")
@@ -181,6 +211,8 @@ def main():
 
     args = parser.parse_args()
     scale = args.s
+    if args.v:
+        logger.setLevel(logging.DEBUG)
 
     # Use name of the first pdf as name of the notebook
     file_path = Path(args.pdf_file[0])
@@ -211,6 +243,7 @@ def main():
     create_metadata(rmdoc_files_folder, rmdoc_uuid, page_uuids, notebook_name)
     rmdoc_file_name = str(rmdoc_files_folder) + ".rmdoc"
     create_rmdoc_file(rmdoc_files_folder, rmdoc_file_name)
+    check_size(rmdoc_file_name)
 
 if __name__ == "__main__":
     main()
