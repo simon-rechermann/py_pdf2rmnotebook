@@ -175,9 +175,9 @@ def split_pdf_pages(pdf_files):
 def main():
     parser = argparse.ArgumentParser(description="Build multi-page reMarkable Notebook rmdoc file from PDF file")
     parser.add_argument('-v', action='store_true', help='Produce more messages to stdout')
-    parser.add_argument('-o', type=str, help='Set the output filename, default is the pdf name of the first passed pdf')
+    parser.add_argument('-o', type=str, help='Set the output filename (default: pdf name of the first passed pdf_file')
     parser.add_argument('-s', type=float, default=0.75, help='Set the scale value (default: 0.75)')
-    parser.add_argument('pdf_files', nargs='+', help='PDF files to convert')
+    parser.add_argument('pdf_file', nargs='+', help='PDF file/files to convert')
 
     args = parser.parse_args()
     scale = args.s
