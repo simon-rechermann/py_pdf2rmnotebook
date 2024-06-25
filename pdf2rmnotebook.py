@@ -183,7 +183,7 @@ def main():
     scale = args.s
 
     # Use name of the first pdf as name of the notebook
-    file_path = Path(args.pdf_files[0])
+    file_path = Path(args.pdf_file[0])
     notebook_name = args.o if args.o else file_path.name.strip(".pdf")
 
     out_file_folder = Path("output")
@@ -198,7 +198,7 @@ def main():
 
     page_uuids = []
     # Get the list of single pdf pages from one or multiple pdf files
-    pdf_pages = split_pdf_pages(args.pdf_files)
+    pdf_pages = split_pdf_pages(args.pdf_file)
     for pdf_page in pdf_pages:
         page_uuid = uuid.uuid4()
         rm_out_file_name = f"{page_uuid}.rm"
