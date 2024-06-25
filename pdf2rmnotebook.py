@@ -66,10 +66,10 @@ def create_rmdoc_file(rmdoc_files_folder, rmdoc_file_name):
                 rmdoc_zip.write(file_path, os.path.relpath(file_path, rmdoc_files_folder))
 
 
-def create_metadata(output_path, rmdoc_uuid, page_uuids):
+def create_metadata(output_path, rmdoc_uuid, page_uuids, notebook_name):
     env = Environment(loader=FileSystemLoader('templates'))
     _create_local_file(output_path, env, rmdoc_uuid)
-    _create_metadata_file(output_path, env, rmdoc_uuid)
+    _create_metadata_file(output_path, env, rmdoc_uuid, notebook_name)
     _create_content_file(output_path, env, rmdoc_uuid, page_uuids)
 
 
@@ -80,12 +80,12 @@ def _create_local_file(output_path, env, rmdoc_uuid):
     with open(os.path.join(output_path, f"{rmdoc_uuid}.local"), 'w') as local_file:
         local_file.write(rendered_template)
 
-def _create_metadata_file(output_path, env, rmdoc_uuid):
+def _create_metadata_file(output_path, env, rmdoc_uuid, notebook_name):
     template = env.get_template('template.metadata.j2')
     current_unix_millies = _get_current_unix_time_millis()
     rendered_template = template.render(
         {
-        "visibleName": "visibleName", 
+        "visibleName": notebook_name, 
         "current_unix_time_milliseconds": current_unix_millies
         }
     )
@@ -131,31 +131,37 @@ def _get_size_in_bytes():
     return 0  
 
 
-def split_pdf_pages(source_pdf_path):
-    # Create a PDF reader object
-    reader = PdfReader(source_pdf_path)
-    num_pages = len(reader.pages)
-    
-    # Make sure the output folder exists
-    if not os.path.exists(OUTPUT_TEMP):
-        os.makedirs(OUTPUT_TEMP)
-
+def split_pdf_pages(pdf_files):
     output_paths = []  # Initialize a list to store output file paths
+    total_num_pages = 0
+    for pdf_file in pdf_files:
+        print(f"Working on file: {pdf_file}")
+        if not os.path.isfile(pdf_file):
+            print(f"{pdf_file}: No such file or irectory.")
+        # Create a PDF reader object
+        reader = PdfReader(pdf_file)
+        num_pages_single_pdf = len(reader.pages)
 
-    # Split each page into a separate PDF
-    for i in range(num_pages):
-        writer = PdfWriter()
-        writer.add_page(reader.pages[i])
+        # Make sure the output folder exists
+        if not os.path.exists(OUTPUT_TEMP):
+            os.makedirs(OUTPUT_TEMP)
 
-        output_filename = f"page_{i + 1}.pdf"
-        output_path = os.path.join(OUTPUT_TEMP, output_filename)
-        
-        # Write out the new PDF
-        with open(output_path, 'wb') as output_pdf:
-            writer.write(output_pdf)
-        
-        print(f"Created: {output_path}")
-        output_paths.append(output_path)  # Append the path to the list
+
+        # Split each page into a separate PDF
+        for i in range(num_pages_single_pdf):
+            writer = PdfWriter()
+            writer.add_page(reader.pages[i])
+
+            output_filename = f"page_{total_num_pages + i + 1}.pdf"
+            output_path = os.path.join(OUTPUT_TEMP, output_filename)
+            
+            # Write out the new PDF
+            with open(output_path, 'wb') as output_pdf:
+                writer.write(output_pdf)
+            
+            print(f"Created: {output_path}")
+            output_paths.append(output_path)  # Append the path to the list
+        total_num_pages += num_pages_single_pdf
 
     return output_paths  # Return the list of created PDF file paths
 
@@ -163,16 +169,16 @@ def main():
     parser = argparse.ArgumentParser(description="Build multi-page reMarkable Notebook rmdoc file from PDF file")
     parser.add_argument('-v', action='store_true', help='Produce more messages to stdout')
     parser.add_argument('-n', type=str, help='Set the rmdoc Notebook Display Name')
-    parser.add_argument('-o', type=str, help='Set the output filename')
+    parser.add_argument('-o', type=str, help='Set the output filename, default is the pdf name of the first passed pdf')
     parser.add_argument('-s', type=float, default=0.75, help='Set the scale value (default: 0.75)')
     parser.add_argument('files', nargs='+', help='PDF files to convert')
 
     args = parser.parse_args()
     scale = args.s
-    rmdoc_folder_name = args.o if args.o else f"Notebook-{datetime.now().strftime('%Y%m%d_%H%M.%S')}"
+    notebook_name = args.o if args.o else f"Notebook-{datetime.now().strftime('%Y%m%d_%H%M.%S')}"
 
     out_file_folder = Path("output")
-    rmdoc_files_folder = out_file_folder / rmdoc_folder_name
+    rmdoc_files_folder = out_file_folder / notebook_name
     rmdoc_uuid = str(uuid.uuid4())
     rm_files_folder = rmdoc_files_folder / rmdoc_uuid
     thumbnails_folder = Path(str(rm_files_folder) + ".thumbnails")
@@ -182,22 +188,18 @@ def main():
         os.makedirs(thumbnails_folder)
 
     page_uuids = []
-    for pdf_file in args.files:
-        print(f"Working on file: {pdf_file}")
-        if not os.path.isfile(pdf_file):
-            print(f"{pdf_file}: No such file or directory.")
-            usage()
-        pdf_pages = split_pdf_pages(pdf_file)  # Get the list of pages
-        for pdf_page in pdf_pages:  # Iterate over each page
-            page_uuid = uuid.uuid4()
-            rm_out_file_name = f"{page_uuid}.rm"
-            thumbnail_out_file_name = f"{page_uuid}.png"
-            page_uuids.append(page_uuid)
-            rm_out_file_path = rm_files_folder / rm_out_file_name
-            thumbnail_out_file_path = thumbnails_folder / thumbnail_out_file_name
-            create_single_rm_file_from_single_pdf(pdf_page, rm_out_file_path, scale)
-            create_thumbnail(pdf_page, thumbnail_out_file_path)
-    create_metadata(rmdoc_files_folder, rmdoc_uuid, page_uuids)
+    # Get the list of single pdf pages from one or multiple pdf files
+    pdf_pages = split_pdf_pages(args.files)
+    for pdf_page in pdf_pages:
+        page_uuid = uuid.uuid4()
+        rm_out_file_name = f"{page_uuid}.rm"
+        thumbnail_out_file_name = f"{page_uuid}.png"
+        page_uuids.append(page_uuid)
+        rm_out_file_path = rm_files_folder / rm_out_file_name
+        thumbnail_out_file_path = thumbnails_folder / thumbnail_out_file_name
+        create_single_rm_file_from_single_pdf(pdf_page, rm_out_file_path, scale)
+        create_thumbnail(pdf_page, thumbnail_out_file_path)
+    create_metadata(rmdoc_files_folder, rmdoc_uuid, page_uuids, notebook_name)
     rmdoc_file_name = str(rmdoc_files_folder) + ".rmdoc"
     create_rmdoc_file(rmdoc_files_folder, rmdoc_file_name)
 
