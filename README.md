@@ -9,8 +9,32 @@ It should also work on windows and macOS with minor adaptions as python and java
 For question, improvement suggestions, bug reports etc. create a github issue.
 
 
-## Setup the project on a linux machine
+## Setup the project on a ubuntu machine
 - Install [draw2dj](https://sourceforge.net/projects/drawj2d/files/1.3.3) -> This requires java beeing installed on your machine
+  [draw2dj installation](https://sourceforge.net/p/drawj2d/wiki/Home)
+```bash
+# Install java (jdk and jre)
+# I used openjdk-21-jdk but older versions are fine as well
+sudo apt install openjdk-21-jdk
+# Verify that java is installed
+╰─➤  java --version
+openjdk 21.0.3 2024-04-16
+OpenJDK Runtime Environment (build 21.0.3+9-Ubuntu-1ubuntu122.04.1)
+OpenJDK 64-Bit Server VM (build 21.0.3+9-Ubuntu-1ubuntu122.04.1, mixed mode, sharing)
+# Download draw2dj
+# I used the debian package (drawj2d_1.3.3-4.1_all.deb), if you are on other operating systems, use the .zip file, download it, unzip it and add draw2dj to the PATH so you operating system finds it
+cd ~/Downloads
+sudo dkpg -i drawj2d_1.3.3-4.1_all.deb # the debian package get's installed to a location that part of the PATH so no further adjustments are necessary
+# Verify the installation
+╰─➤  drawj2d                                                                                                      130 ↵
+
+            Welcome to Drawj2d
+            Copyright (c) A. Vontobel, 2014-2024
+            Version 1.3.3
+
+Mode: Freehep
+```
+
 - Setup the python project
 ```bash
 # Install python3, python3-venv and python3-pip
