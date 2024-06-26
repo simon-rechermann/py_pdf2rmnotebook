@@ -1,7 +1,7 @@
 # py_pdf2rmnotebook
-Creates a reMarkable2 rmdoc file from one or multiple PDF having one or multipe pages. The rmdoc file can be moved to the reMarkable2 via drag and drop to the web Interface [Transferring files via web Interface](https://support.remarkable.com/s/article/Transferring-files-using-a-USB-cable) .
+Creates a reMarkable2 rmdoc file from one or multiple PDFs having one or multipe pages. The rmdoc file can be moved to the reMarkable2 via drag and drop to the web Interface [Transferring files via web Interface](https://support.remarkable.com/s/article/Transferring-files-using-a-USB-cable) .
 ## General information
-This project is still in development and only tests with with python3.12 on ubuntu with a remarkable2 having Software verison 3.11.2.5 installed.
+This project is still in development and only tested with python3.12 on ubuntu with a remarkable2 having Software verison 3.11.2.5 installed.
 It should also work on windows and macOS with minor adaptions as python and java(draw2dj) are platform independent. However, I haven't tested it on other platforms so far. If you want to use it on windows raise a github issue, then I can add support for that.
 
 **Please create a backup of your files before copying the generated rmdoc file to your reMarkable**. It should't break anything but just to be safe [How to backup your data](https://remarkable.guide/guide/access/backup.html). 
@@ -16,8 +16,8 @@ For question, improvement suggestions, bug reports etc. create a github issue.
 # Install python3, python3-venv and python3-pip
 sudo apt install python3 python3-venv python3-pip
 # Clone the repo and cd into it
-git clone ...
-cd pdfs_for_remarkable
+git clone https://github.com/simon-rechermann/py_pdf2rmnotebook.git
+cd py_pdf2rmnotebook
 # Setup a python virtual environment
 python3 -m venv venv
 # Activate the venv. This has to be done each time you start a new shell!
@@ -27,8 +27,7 @@ pip install -r requirements.txt
 ```
 ## Usage
 ```bash
-# Make sure you sourced the venv so python knows it's requirements
-python3 pdf2rmnotebook.py
+# Make sure you sourced the venv so python knows it's requirements/site-packages!
 # Get help message that shows usage
 python3 pdf2rmnotebook.py -h
 ```
