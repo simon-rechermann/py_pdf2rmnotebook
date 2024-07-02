@@ -11,6 +11,7 @@ from pdf2image import convert_from_path
 import time
 import logging
 from termcolor import colored
+import shutil
 
 
 class ColorizingStreamHandler(logging.StreamHandler):
@@ -222,6 +223,10 @@ def main():
 
     out_file_folder = Path("output")
     rmdoc_files_folder = out_file_folder / notebook_name
+    # Check if the folder exists and remove it if it does to override the notebook if it already exists
+    if rmdoc_files_folder.exists():
+        shutil.rmtree(rmdoc_files_folder)  # Deletes the directory and all its contents
+        logger.info(f"Folder {rmdoc_files_folder} has been removed.")
     rmdoc_uuid = str(uuid.uuid4())
     rm_files_folder = rmdoc_files_folder / rmdoc_uuid
     thumbnails_folder = Path(str(rm_files_folder) + ".thumbnails")
