@@ -57,7 +57,7 @@ def create_single_rm_file_from_single_pdf(pdf_path, out_file_path, scale):
 
 def create_thumbnail(pdf_path, out_file_path):
     # Convert the first page of the PDF to an image
-    images = convert_from_path(pdf_path, first_page=0, last_page=1)
+    images = convert_from_path(pdf_path, first_page=0, last_page=1, dpi=40)
     
     if images:
         # Save the first page as a PNG file
@@ -184,8 +184,10 @@ def split_pdf_pages(pdf_files):
 
 def check_size(file_path):
     # Constant for the maximum file size (100MB) supported by the remarkable web Interface
-    MAX_SIZE_BYTES = 100 * 1024 * 1024  # 100MB in bytes
-    TEN_MB_BYTES = 10 * 1024 * 1024  # 10MB in bytes
+    # RM uses MB (1000*1000) instead of MiB(1024 * 1024)
+    MB = 1000 * 1000
+    MAX_SIZE_BYTES = 100 * MB  # 100MiB in bytes
+    TWO_MB_BYTES = 2 * MB  # 10MiB in bytes
     
     # Check if the file exists
     if not os.path.exists(file_path):
@@ -197,11 +199,11 @@ def check_size(file_path):
     
     # Check if the file size is greater than the limit
     if file_size > MAX_SIZE_BYTES:
-        logger.error(f'The file size is {file_size / (1024 * 1024):.2f} MB, which is greater than the allowed 100 MB. File transfer via the Web Interface will not work')
-    elif file_size >= MAX_SIZE_BYTES - TEN_MB_BYTES:
-        logger.warning(f'The file size is {file_size / (1024 * 1024):.2f} MB, which is close to the limit of 100MB. File transfer via the Web Interface might not work')
+        logger.error(f'The file size is {file_size / MB:.2f} MB, which is greater than the allowed 100 MB. File transfer via the Web Interface will not work')
+    elif file_size >= MAX_SIZE_BYTES - TWO_MB_BYTES:
+        logger.warning(f'The file size is {file_size / MB:.2f} MB, which is close to the limit of 100MB. File transfer via the Web Interface might not work')
     else:
-        logger.info(f'The file size is {file_size / (1024 * 1024):.2f} MB, which is within the limit.')
+        logger.info(f'The file size is {file_size / MB:.2f} MB, which is within the limit.')
 
 
 def main():
@@ -238,7 +240,7 @@ def main():
     page_uuids = []
     # Get the list of single pdf pages from one or multiple pdf files
     pdf_pages = split_pdf_pages(args.pdf_file)
-    for pdf_page in pdf_pages:
+    for idx, pdf_page in enumerate(pdf_pages):
         page_uuid = uuid.uuid4()
         rm_out_file_name = f"{page_uuid}.rm"
         thumbnail_out_file_name = f"{page_uuid}.png"
