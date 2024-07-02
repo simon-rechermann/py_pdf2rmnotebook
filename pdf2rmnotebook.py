@@ -217,7 +217,8 @@ def main():
 
     # Use name of the first pdf as name of the notebook
     file_path = Path(args.pdf_file[0])
-    notebook_name = args.o if args.o else file_path.name.strip(".pdf")
+    # Remove file extension and get rid of whitespace in file names
+    notebook_name = args.o if args.o else file_path.name.strip(".pdf").replace(" ", "")
 
     out_file_folder = Path("output")
     rmdoc_files_folder = out_file_folder / notebook_name
