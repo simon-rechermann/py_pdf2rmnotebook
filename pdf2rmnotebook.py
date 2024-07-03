@@ -41,19 +41,36 @@ logging.basicConfig(level=logging.INFO, handlers=[ColorizingStreamHandler()], fo
 # Create logger
 logger = logging.getLogger()
 
-OUTPUT_TEMP = "output/temp"
+OUTPUT_TEMP = Path("output/temp")
 
 
 def create_single_rm_file_from_single_pdf(pdf_path, out_file_path, scale):
-    # echo image aliasing.pdf 0 0 0 0.7 | drawj2d -Trmdoc
-    drawj2d_cmd = f"echo image {pdf_path} 0 0 0 {scale} | drawj2d -Trm -o {out_file_path}"
-    process = subprocess.run(drawj2d_cmd, shell=True, text=True, capture_output=True) #cwd=out_file_path)
-    if process.returncode == 0:
-        logger.debug("drawj2d_cmd command executed successfully!")
-        logger.debug(f"Output:\n {process.stdout}")
+    # echo image {pdf_path} 0 0 0 0.7 | drawj2d -Trm -o {out_file_path}
+    
+    echo_cmd = ["echo", f"image {pdf_path} 0 0 0 {scale}"]
+    drawj2d_cmd = ["drawj2d", "-Trm", f"-o{out_file_path}"]
+
+    # Start the echo subprocess
+    echo_process = subprocess.Popen(echo_cmd, stdout=subprocess.PIPE, text=True, shell=True)
+    
+    # Start the drawj2d subprocess, connecting input to echo's output
+    drawj2d_process = subprocess.Popen(drawj2d_cmd, stdin=echo_process.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    
+    # Close echo_process.stdout to allow drawj2d to receive EOF
+    echo_process.stdout.close()
+    
+    # Wait for the drawj2d process to finish and capture its output and errors
+    output, error = drawj2d_process.communicate()
+
+    # Check for errors after the processes have completed
+    if drawj2d_process.returncode != 0:
+        logging.error(f"drawj2d process failed with error:\n{error}")
+        sys.exit("Error in drawj2d command execution, terminating.")
     else:
-        logger.error(f"Error in drawj2d call:\n{process.stderr}")
-        sys.exit()
+        logging.info("drawj2d process executed successfully!")
+
+    # Optionally log output if needed
+    logging.info(f"Output from drawj2d: {output}")
 
 def create_thumbnail(pdf_path, out_file_path):
     # Convert the first page of the PDF to an image
@@ -160,8 +177,8 @@ def split_pdf_pages(pdf_files):
         num_pages_single_pdf = len(reader.pages)
 
         # Make sure the output folder exists
-        if not os.path.exists(OUTPUT_TEMP):
-            os.makedirs(OUTPUT_TEMP)
+        if not OUTPUT_TEMP.exists():
+            OUTPUT_TEMP.mkdir(parents=True)
 
 
         # Split each page into a separate PDF
@@ -170,7 +187,7 @@ def split_pdf_pages(pdf_files):
             writer.add_page(reader.pages[i])
 
             output_filename = f"page_{total_num_pages + i + 1}.pdf"
-            output_path = os.path.join(OUTPUT_TEMP, output_filename)
+            output_path = OUTPUT_TEMP / output_filename
             
             # Write out the new PDF
             with open(output_path, 'wb') as output_pdf:
