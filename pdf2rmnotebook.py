@@ -83,7 +83,11 @@ def create_thumbnail(pdf_path, out_file_path):
     #     logger.error(f"Failed to create thumbnail for: {pdf_path}")
     doc = fitz.open(pdf_path)
     page = doc.load_page(0)  # first page
-    pix = page.get_pixmap()
+    # Reducing the resolution to lower the image quality
+    zoom_x = 0.7  # Horizontal zoom
+    zoom_y = 0.7  # Vertical zoom
+    mat = fitz.Matrix(zoom_x, zoom_y)
+    pix = page.get_pixmap(matrix=mat)
     pix.save(out_file_path)
     doc.close()
 
@@ -231,7 +235,7 @@ def main():
     parser = argparse.ArgumentParser(description="Build multi-page reMarkable Notebook rmdoc file from PDF file")
     parser.add_argument('-v', action='store_true', help='Produce more messages to stdout')
     parser.add_argument('-o', type=str, help='Set the output filename (default: pdf name of the first passed pdf_file')
-    parser.add_argument('-s', type=float, default=0.75, help='Set the scale value (default: 0.75)')
+    parser.add_argument('-s', type=float, default=0.7, help='Set the scale value (default: 0.75)')
     parser.add_argument('pdf_file', nargs='+', help='PDF file/files to convert')
 
     args = parser.parse_args()
