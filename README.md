@@ -37,8 +37,9 @@ Mode: Freehep
 
 - Setup the python project
 ```bash
-# Install python3, python3-venv and python3-pip
-sudo apt install python3 python3-venv python3-pip
+sudo apt update
+# Install python3, python3-venv, python3-pip
+sudo apt install python3 python3-venv and python3-pip
 # Clone the repo and cd into it
 git clone https://github.com/simon-rechermann/py_pdf2rmnotebook.git
 cd py_pdf2rmnotebook
@@ -50,9 +51,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Draft: Setup the project on a windows machine
-### CURRENTLY THIS DOES NOT work as drawj2d is not working for me on windows (the command "echo image <filename>.pdf 0 0 0 0.7 | drawj2d -Trmdoc" is throwing an error)
-### Please use WSL2 if your on windows
+## Setup the project on a windows machine
 
 - Download java (e.g. the openJDK from here https://adoptium.net/) and execute the installer
 -> Select "Add to PATH" and "Set JAVA_HOME variable" in the installer and install it
@@ -77,6 +76,7 @@ drawj2d
 
 Mode: Freehep
 ```
+
 - Download the py_pdf2rmnotebook zip file [py_pdf2rmnotebook zip file](https://github.com/simon-rechermann/py_pdf2rmnotebook/archive/refs/heads/main.zip) and unpack it (You can also use git of course to clone the repo if you want)
 - Open powershell
 ```powershell

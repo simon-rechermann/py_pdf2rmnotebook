@@ -7,7 +7,11 @@ import zipfile
 import subprocess
 from jinja2 import  Environment, FileSystemLoader
 from pathlib import Path
-from pdf2image import convert_from_path
+# For now use PyMuPDF instead of pdf2image as pdf2image does requires poppler to be installed on the system
+# It's usually preinstalled on linux distros but not on windows and mac
+# -> this makes the project setup more complicated
+# from pdf2image import convert_from_path
+import fitz
 import time
 import logging
 from termcolor import colored
@@ -41,30 +45,54 @@ logging.basicConfig(level=logging.INFO, handlers=[ColorizingStreamHandler()], fo
 # Create logger
 logger = logging.getLogger()
 
-OUTPUT_TEMP = "output/temp"
+OUTPUT_TEMP = Path("output/temp")
 
 
 def create_single_rm_file_from_single_pdf(pdf_path, out_file_path, scale):
-    # echo image aliasing.pdf 0 0 0 0.7 | drawj2d -Trmdoc
-    drawj2d_cmd = f"echo image {pdf_path} 0 0 0 {scale} | drawj2d -Trm -o {out_file_path}"
-    process = subprocess.run(drawj2d_cmd, shell=True, text=True, capture_output=True) #cwd=out_file_path)
-    if process.returncode == 0:
-        logger.debug("drawj2d_cmd command executed successfully!")
-        logger.debug(f"Output:\n {process.stdout}")
+    # echo image {pdf_path} 0 0 0 0.7 | drawj2d -Trm -o {out_file_path}
+
+    # Ensure the path is suitable for command line usage on windows
+    # By using forward slashes for paths
+    # For Linux this does nothing
+    pdf_path = str(pdf_path).replace('\\', '/')
+    out_file_path = str(out_file_path).replace('\\', '/')
+
+    # Ensure paths are quoted to handle spaces and special characters
+    command = f'echo image "{pdf_path}" 0 0 0 {scale} | drawj2d -Trm -o"{out_file_path}"'
+
+    # Execute the combined command within a shell
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    
+    # Wait for the process to finish and capture its output and errors
+    output, error = process.communicate()
+
+    # Check for errors after the process has completed
+    if process.returncode != 0:
+        logging.error(f"Command failed with error:\n{error}")
+        sys.exit("Error executing command, terminating.")
     else:
-        logger.error(f"Error in drawj2d call:\n{process.stderr}")
-        sys.exit()
+        logging.info("Command executed successfully!")
+        logging.info(f"Output from command: {output}")
 
 def create_thumbnail(pdf_path, out_file_path):
     # Convert the first page of the PDF to an image
-    images = convert_from_path(pdf_path, first_page=0, last_page=1, dpi=40)
+    # images = convert_from_path(pdf_path, first_page=0, last_page=1, dpi=40)
     
-    if images:
-        # Save the first page as a PNG file
-        images[0].save(out_file_path, 'PNG')
-        logger.debug(f"Thumbnail created: {out_file_path}")
-    else:
-        logger.error(f"Failed to create thumbnail for: {pdf_path}")
+    # if images:
+    #     # Save the first page as a PNG file
+    #     images[0].save(out_file_path, 'PNG')
+    #     logger.debug(f"Thumbnail created: {out_file_path}")
+    # else:
+    #     logger.error(f"Failed to create thumbnail for: {pdf_path}")
+    doc = fitz.open(pdf_path)
+    page = doc.load_page(0)  # first page
+    # Reducing the resolution to lower the image quality
+    zoom_x = 0.7  # Horizontal zoom
+    zoom_y = 0.7  # Vertical zoom
+    mat = fitz.Matrix(zoom_x, zoom_y)
+    pix = page.get_pixmap(matrix=mat)
+    pix.save(out_file_path)
+    doc.close()
 
 
 def create_rmdoc_file(rmdoc_files_folder, rmdoc_file_name):
@@ -160,8 +188,8 @@ def split_pdf_pages(pdf_files):
         num_pages_single_pdf = len(reader.pages)
 
         # Make sure the output folder exists
-        if not os.path.exists(OUTPUT_TEMP):
-            os.makedirs(OUTPUT_TEMP)
+        if not OUTPUT_TEMP.exists():
+            OUTPUT_TEMP.mkdir(parents=True)
 
 
         # Split each page into a separate PDF
@@ -170,7 +198,7 @@ def split_pdf_pages(pdf_files):
             writer.add_page(reader.pages[i])
 
             output_filename = f"page_{total_num_pages + i + 1}.pdf"
-            output_path = os.path.join(OUTPUT_TEMP, output_filename)
+            output_path = OUTPUT_TEMP / output_filename
             
             # Write out the new PDF
             with open(output_path, 'wb') as output_pdf:
@@ -210,7 +238,7 @@ def main():
     parser = argparse.ArgumentParser(description="Build multi-page reMarkable Notebook rmdoc file from PDF file")
     parser.add_argument('-v', action='store_true', help='Produce more messages to stdout')
     parser.add_argument('-o', type=str, help='Set the output filename (default: pdf name of the first passed pdf_file')
-    parser.add_argument('-s', type=float, default=0.75, help='Set the scale value (default: 0.75)')
+    parser.add_argument('-s', type=float, default=0.7, help='Set the scale value (default: 0.75)')
     parser.add_argument('pdf_file', nargs='+', help='PDF file/files to convert')
 
     args = parser.parse_args()
