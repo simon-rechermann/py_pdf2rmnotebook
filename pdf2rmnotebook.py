@@ -7,7 +7,11 @@ import zipfile
 import subprocess
 from jinja2 import  Environment, FileSystemLoader
 from pathlib import Path
-from pdf2image import convert_from_path
+# For now use PyMuPDF instead of pdf2image as pdf2image does requires poppler to be installed on the system
+# It's usually preinstalled on linux distros but not on windows and mac
+# -> this makes the project setup more complicated
+# from pdf2image import convert_from_path
+import fitz
 import time
 import logging
 from termcolor import colored
@@ -45,43 +49,43 @@ OUTPUT_TEMP = Path("output/temp")
 
 
 def create_single_rm_file_from_single_pdf(pdf_path, out_file_path, scale):
-    # echo image {pdf_path} 0 0 0 0.7 | drawj2d -Trm -o {out_file_path}
-    
-    echo_cmd = ["echo", f"image {pdf_path} 0 0 0 {scale}"]
-    drawj2d_cmd = ["drawj2d", "-Trm", f"-o{out_file_path}"]
+    # Ensure the path is suitable for command line usage
+    pdf_path = str(pdf_path).replace('\\', '/')  # Use forward slashes for paths
+    out_file_path = str(out_file_path).replace('\\', '/')
 
-    # Start the echo subprocess
-    echo_process = subprocess.Popen(echo_cmd, stdout=subprocess.PIPE, text=True, shell=True)
-    
-    # Start the drawj2d subprocess, connecting input to echo's output
-    drawj2d_process = subprocess.Popen(drawj2d_cmd, stdin=echo_process.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    
-    # Close echo_process.stdout to allow drawj2d to receive EOF
-    echo_process.stdout.close()
-    
-    # Wait for the drawj2d process to finish and capture its output and errors
-    output, error = drawj2d_process.communicate()
+    # Concatenate commands into a single command string for shell execution
+    # Ensure paths are quoted to handle spaces and special characters
+    command = f'echo image "{pdf_path}" 0 0 0 {scale} | drawj2d -Trm -o"{out_file_path}"'
 
-    # Check for errors after the processes have completed
-    if drawj2d_process.returncode != 0:
-        logging.error(f"drawj2d process failed with error:\n{error}")
-        sys.exit("Error in drawj2d command execution, terminating.")
+    # Execute the combined command within a shell
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    
+    # Wait for the process to finish and capture its output and errors
+    output, error = process.communicate()
+
+    # Check for errors after the process has completed
+    if process.returncode != 0:
+        logging.error(f"Command failed with error:\n{error}")
+        sys.exit("Error executing command, terminating.")
     else:
-        logging.info("drawj2d process executed successfully!")
-
-    # Optionally log output if needed
-    logging.info(f"Output from drawj2d: {output}")
+        logging.info("Command executed successfully!")
+        logging.info(f"Output from command: {output}")
 
 def create_thumbnail(pdf_path, out_file_path):
     # Convert the first page of the PDF to an image
-    images = convert_from_path(pdf_path, first_page=0, last_page=1, dpi=40)
+    # images = convert_from_path(pdf_path, first_page=0, last_page=1, dpi=40)
     
-    if images:
-        # Save the first page as a PNG file
-        images[0].save(out_file_path, 'PNG')
-        logger.debug(f"Thumbnail created: {out_file_path}")
-    else:
-        logger.error(f"Failed to create thumbnail for: {pdf_path}")
+    # if images:
+    #     # Save the first page as a PNG file
+    #     images[0].save(out_file_path, 'PNG')
+    #     logger.debug(f"Thumbnail created: {out_file_path}")
+    # else:
+    #     logger.error(f"Failed to create thumbnail for: {pdf_path}")
+    doc = fitz.open(pdf_path)
+    page = doc.load_page(0)  # first page
+    pix = page.get_pixmap()
+    pix.save(out_file_path)
+    doc.close()
 
 
 def create_rmdoc_file(rmdoc_files_folder, rmdoc_file_name):

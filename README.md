@@ -37,8 +37,9 @@ Mode: Freehep
 
 - Setup the python project
 ```bash
-# Install python3, python3-venv and python3-pip
-sudo apt install python3 python3-venv python3-pip
+sudo apt update
+# Install python3, python3-venv, python3-pip and poppler-utils which is used by pdf2image which is a requirement
+sudo apt install python3 python3-venv python3-pip poppler-utils
 # Clone the repo and cd into it
 git clone https://github.com/simon-rechermann/py_pdf2rmnotebook.git
 cd py_pdf2rmnotebook
@@ -77,6 +78,8 @@ drawj2d
 
 Mode: Freehep
 ```
+- Install poppler:
+
 - Download the py_pdf2rmnotebook zip file [py_pdf2rmnotebook zip file](https://github.com/simon-rechermann/py_pdf2rmnotebook/archive/refs/heads/main.zip) and unpack it (You can also use git of course to clone the repo if you want)
 - Open powershell
 ```powershell
