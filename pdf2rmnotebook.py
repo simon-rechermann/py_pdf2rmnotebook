@@ -49,11 +49,14 @@ OUTPUT_TEMP = Path("output/temp")
 
 
 def create_single_rm_file_from_single_pdf(pdf_path, out_file_path, scale):
-    # Ensure the path is suitable for command line usage
-    pdf_path = str(pdf_path).replace('\\', '/')  # Use forward slashes for paths
+    # echo image {pdf_path} 0 0 0 0.7 | drawj2d -Trm -o {out_file_path}
+
+    # Ensure the path is suitable for command line usage on windows
+    # By using forward slashes for paths
+    # For Linux this does nothing
+    pdf_path = str(pdf_path).replace('\\', '/')
     out_file_path = str(out_file_path).replace('\\', '/')
 
-    # Concatenate commands into a single command string for shell execution
     # Ensure paths are quoted to handle spaces and special characters
     command = f'echo image "{pdf_path}" 0 0 0 {scale} | drawj2d -Trm -o"{out_file_path}"'
 
